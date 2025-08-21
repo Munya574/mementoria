@@ -13,6 +13,8 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppSecurityRouteImport } from './routes/app/security'
+import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
 import { Route as AppScrapebooksIndexRouteImport } from './routes/app/scrapebooks/index'
 
@@ -36,6 +38,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSecurityRoute = AppSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -50,6 +62,8 @@ const AppScrapebooksIndexRoute = AppScrapebooksIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/security': typeof AppSecurityRoute
   '/app/': typeof AppIndexRoute
   '/auth': typeof AuthIndexRoute
   '/app/scrapebooks': typeof AppScrapebooksIndexRoute
@@ -57,6 +71,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/security': typeof AppSecurityRoute
   '/app': typeof AppIndexRoute
   '/auth': typeof AuthIndexRoute
   '/app/scrapebooks': typeof AppScrapebooksIndexRoute
@@ -66,6 +82,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/security': typeof AppSecurityRoute
   '/app/': typeof AppIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/app/scrapebooks/': typeof AppScrapebooksIndexRoute
@@ -76,16 +94,27 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/app/notifications'
+    | '/app/security'
     | '/app/'
     | '/auth'
     | '/app/scrapebooks'
     | '/app/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/auth' | '/app/scrapebooks' | '/app/settings'
+  to:
+    | '/'
+    | '/app/notifications'
+    | '/app/security'
+    | '/app'
+    | '/auth'
+    | '/app/scrapebooks'
+    | '/app/settings'
   id:
     | '__root__'
     | '/'
     | '/app'
+    | '/app/notifications'
+    | '/app/security'
     | '/app/'
     | '/auth/'
     | '/app/scrapebooks/'
@@ -128,6 +157,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/security': {
+      id: '/app/security'
+      path: '/security'
+      fullPath: '/app/security'
+      preLoaderRoute: typeof AppSecurityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/settings/': {
       id: '/app/settings/'
       path: '/settings'
@@ -146,12 +189,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppSecurityRoute: typeof AppSecurityRoute
   AppIndexRoute: typeof AppIndexRoute
   AppScrapebooksIndexRoute: typeof AppScrapebooksIndexRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppSecurityRoute: AppSecurityRoute,
   AppIndexRoute: AppIndexRoute,
   AppScrapebooksIndexRoute: AppScrapebooksIndexRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
