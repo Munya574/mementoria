@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/hooks/use-session";
+import { authClient } from "@/lib/auth-client";
 import { initials } from "@/lib/utils";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { Camera, LogOut, Save, Trash2, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/settings/")({
   component: SettingsPage,
@@ -16,11 +18,21 @@ export const Route = createFileRoute("/app/settings/")({
 
 function SettingsPage() {
   const router = useRouter();
-  const { session } = useSession();
+  const { session, refetch } = useSession();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
   });
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (session?.user) {
+      setFormData({
+        name: session.user.name,
+        email: session.user.email,
+      });
+    }
+  }, [session]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -29,15 +41,34 @@ function SettingsPage() {
     }));
   };
 
-  const handleSaveChanges = () => {
-    // TODO: Implement save functionality
-    console.log("Saving changes:", formData);
+  const handleSaveChanges = async () => {
+    if (!session) return;
+    setIsSaving(true);
+
+    try {
+      const { error } = await authClient.updateUser({ name: formData.name });
+      if (error) {
+        toast.error(error.message || "Failed to save changes");
+      } else {
+        toast.success("Profile updated");
+        await refetch();
+      }
+    } catch {
+      toast.error("Unable to save settings right now.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleLogout = () => {
-    // TODO: Implement logout functionality
-    console.log("Logging out...");
-    router.navigate({ to: "/" });
+  const handleLogout = async () => {
+    try {
+      await authClient.revokeSession({
+        token: session?.session.token ?? "",
+      });
+    } catch {
+      // ignore logout errors and continue
+    }
+    router.navigate({ to: "/auth" });
   };
 
   const handleDeleteAccount = () => {
@@ -51,9 +82,7 @@ function SettingsPage() {
     }
   };
 
-  const hasChanges =
-    formData.name !== session?.user.name ||
-    formData.email !== session?.user.email;
+  const hasChanges = formData.name !== session?.user.name;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -105,7 +134,7 @@ function SettingsPage() {
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                value={session?.user.name}
+                value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter your full name"
               />
@@ -115,10 +144,15 @@ function SettingsPage() {
               <Input
                 id="email"
                 type="email"
-                value={session?.user.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter your email"
+                value={formData.email}
+                readOnly
+                disabled
+                className="opacity-60 cursor-not-allowed"
               />
+              <p className="text-xs text-muted-foreground">
+                Email changes require identity verification and are not yet
+                supported.
+              </p>
             </div>
           </div>
         </CardContent>
@@ -127,11 +161,11 @@ function SettingsPage() {
       <div className="flex justify-center">
         <Button
           onClick={handleSaveChanges}
-          disabled={!hasChanges}
+          disabled={!hasChanges || isSaving}
           className="bg-primary text-primary-foreground hover:bg-primary/90 px-8"
         >
           <Save className="h-4 w-4 mr-2" />
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 

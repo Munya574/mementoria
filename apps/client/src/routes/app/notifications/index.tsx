@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export const Route = createFileRoute("/app/notifications")({
+export const Route = createFileRoute("/app/notifications/")({
   component: NotificationsPage,
 });
 
@@ -168,7 +168,11 @@ function NotificationsPage() {
         <div className="text-center">
           <Button
             variant="outline"
-            onClick={() => setNotifications([])}
+            onClick={() => {
+              if (confirm("Clear all notifications? This cannot be undone.")) {
+                setNotifications([]);
+              }
+            }}
             className="text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-2" />

@@ -6,7 +6,7 @@ import { prisma } from "./prisma.js";
 const trustedOrigin = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql",
+    provider: "sqlite",
   }),
   emailAndPassword: {
     enabled: true,
