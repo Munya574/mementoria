@@ -13,10 +13,18 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
+  beforeLoad: async () => {
+    const { data: session } = await authClient.getSession();
+    if (!session) {
+      throw redirect({ to: "/auth" });
+    }
+    return { session };
+  },
 });
 
 function AppLayout() {

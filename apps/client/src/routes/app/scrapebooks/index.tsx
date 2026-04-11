@@ -4,12 +4,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { DraggableItem } from "@/components/draggable-item";
 import { AnimatePresence, motion } from "framer-motion";
 import { BookOpen, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/scrapebooks/")({
   component: ScrapebooksPage,
@@ -40,6 +41,35 @@ const variants = {
   open: { rotateY: 180, scale: 1.05 },
   exit: { rotateY: 0, scale: 1 },
 };
+
+const STORAGE_KEY = "mementoria:scrapebooks";
+
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+];
+const ALLOWED_AUDIO_TYPES = [
+  "audio/mpeg",
+  "audio/wav",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/aac",
+];
+const ALLOWED_FILE_TYPES = new Set([
+  ...ALLOWED_IMAGE_TYPES,
+  ...ALLOWED_AUDIO_TYPES,
+]);
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Unable to read file"));
+    reader.readAsDataURL(file);
+  });
 
 // Page flip animation variants
 const pageFlipVariants = {
@@ -72,6 +102,25 @@ export default function ScrapebooksPage() {
   const [pageInput, setPageInput] = useState(1);
   const [direction, setDirection] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        setBooks(JSON.parse(stored));
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
+        toast.error(
+          "Your scrapbook data was corrupted and could not be loaded. Starting fresh.",
+        );
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+  }, [books]);
 
   const addBook = () => {
     if (!newTitle.trim()) return;
@@ -110,20 +159,35 @@ export default function ScrapebooksPage() {
     setNewText("");
   };
 
-  const addFileToPage = (file: File) => {
+  const addFileToPage = async (file: File) => {
     if (!openBook) return;
-    const url = URL.createObjectURL(file);
-    const type = file.type.startsWith("image") ? "image" : "audio";
-    const newItem: PageItem = {
-      id: uuidv4(),
-      type,
-      content: url,
-      x: 50,
-      y: 50,
-    };
-    const updated = { ...openBook };
-    updated.pages[currentPageIndex].items.push(newItem);
-    updateBook(updated);
+
+    if (!ALLOWED_FILE_TYPES.has(file.type)) {
+      toast.error(
+        "Unsupported file type. Please upload an image (JPEG, PNG, GIF, WebP) or audio file (MP3, WAV, OGG).",
+      );
+      return;
+    }
+
+    setIsUploadingFile(true);
+    try {
+      const url = await readFileAsDataUrl(file);
+      const type = ALLOWED_IMAGE_TYPES.includes(file.type) ? "image" : "audio";
+      const newItem: PageItem = {
+        id: uuidv4(),
+        type,
+        content: url,
+        x: 50,
+        y: 50,
+      };
+      const updated = { ...openBook };
+      updated.pages[currentPageIndex].items.push(newItem);
+      updateBook(updated);
+    } catch {
+      toast.error("Failed to read file. Please try again.");
+    } finally {
+      setIsUploadingFile(false);
+    }
   };
 
   const handleDrag = (id: string, x: number, y: number) => {
@@ -263,13 +327,39 @@ export default function ScrapebooksPage() {
               Add Text
             </Button>
             <div className="flex items-center gap-2 border p-2 rounded bg-white">
-              <input
-                type="file"
-                accept="image/*,audio/*"
-                onChange={(e) =>
-                  e.target.files && addFileToPage(e.target.files[0])
-                }
-              />
+              {isUploadingFile ? (
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    />
+                  </svg>
+                  Uploading...
+                </span>
+              ) : (
+                <input
+                  type="file"
+                  accept="image/*,audio/*"
+                  onChange={(e) =>
+                    e.target.files && addFileToPage(e.target.files[0])
+                  }
+                />
+              )}
             </div>
           </div>
 
@@ -366,7 +456,7 @@ export default function ScrapebooksPage() {
       ) : (
         <div className="space-y-4">
           <div>
-            <h1 className="text-3xl font-bold">My Scrapebooks</h1>
+            <h1 className="text-3xl font-bold">My Scrapbooks</h1>
             <p className="text-muted-foreground text-sm">
               A digital space for your memories ✨
             </p>

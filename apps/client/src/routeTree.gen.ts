@@ -16,7 +16,9 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppSecurityRouteImport } from './routes/app/security'
 import { Route as AppNotificationsRouteImport } from './routes/app/notifications'
 import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
+import { Route as AppSecurityIndexRouteImport } from './routes/app/security/index'
 import { Route as AppScrapebooksIndexRouteImport } from './routes/app/scrapebooks/index'
+import { Route as AppNotificationsIndexRouteImport } from './routes/app/notifications/index'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -53,40 +55,54 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSecurityIndexRoute = AppSecurityIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSecurityRoute,
+} as any)
 const AppScrapebooksIndexRoute = AppScrapebooksIndexRouteImport.update({
   id: '/scrapebooks/',
   path: '/scrapebooks/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNotificationsIndexRoute = AppNotificationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppNotificationsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/app/notifications': typeof AppNotificationsRoute
-  '/app/security': typeof AppSecurityRoute
+  '/app/notifications': typeof AppNotificationsRouteWithChildren
+  '/app/security': typeof AppSecurityRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/auth': typeof AuthIndexRoute
+  '/app/notifications/': typeof AppNotificationsIndexRoute
   '/app/scrapebooks': typeof AppScrapebooksIndexRoute
+  '/app/security/': typeof AppSecurityIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/app/notifications': typeof AppNotificationsRoute
-  '/app/security': typeof AppSecurityRoute
   '/app': typeof AppIndexRoute
   '/auth': typeof AuthIndexRoute
+  '/app/notifications': typeof AppNotificationsIndexRoute
   '/app/scrapebooks': typeof AppScrapebooksIndexRoute
+  '/app/security': typeof AppSecurityIndexRoute
   '/app/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/app/notifications': typeof AppNotificationsRoute
-  '/app/security': typeof AppSecurityRoute
+  '/app/notifications': typeof AppNotificationsRouteWithChildren
+  '/app/security': typeof AppSecurityRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/auth/': typeof AuthIndexRoute
+  '/app/notifications/': typeof AppNotificationsIndexRoute
   '/app/scrapebooks/': typeof AppScrapebooksIndexRoute
+  '/app/security/': typeof AppSecurityIndexRoute
   '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -98,16 +114,18 @@ export interface FileRouteTypes {
     | '/app/security'
     | '/app/'
     | '/auth'
+    | '/app/notifications/'
     | '/app/scrapebooks'
+    | '/app/security/'
     | '/app/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/app/notifications'
-    | '/app/security'
     | '/app'
     | '/auth'
+    | '/app/notifications'
     | '/app/scrapebooks'
+    | '/app/security'
     | '/app/settings'
   id:
     | '__root__'
@@ -117,7 +135,9 @@ export interface FileRouteTypes {
     | '/app/security'
     | '/app/'
     | '/auth/'
+    | '/app/notifications/'
     | '/app/scrapebooks/'
+    | '/app/security/'
     | '/app/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -178,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/security/': {
+      id: '/app/security/'
+      path: '/'
+      fullPath: '/app/security/'
+      preLoaderRoute: typeof AppSecurityIndexRouteImport
+      parentRoute: typeof AppSecurityRoute
+    }
     '/app/scrapebooks/': {
       id: '/app/scrapebooks/'
       path: '/scrapebooks'
@@ -185,20 +212,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScrapebooksIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/notifications/': {
+      id: '/app/notifications/'
+      path: '/'
+      fullPath: '/app/notifications/'
+      preLoaderRoute: typeof AppNotificationsIndexRouteImport
+      parentRoute: typeof AppNotificationsRoute
+    }
   }
 }
 
+interface AppNotificationsRouteChildren {
+  AppNotificationsIndexRoute: typeof AppNotificationsIndexRoute
+}
+
+const AppNotificationsRouteChildren: AppNotificationsRouteChildren = {
+  AppNotificationsIndexRoute: AppNotificationsIndexRoute,
+}
+
+const AppNotificationsRouteWithChildren =
+  AppNotificationsRoute._addFileChildren(AppNotificationsRouteChildren)
+
+interface AppSecurityRouteChildren {
+  AppSecurityIndexRoute: typeof AppSecurityIndexRoute
+}
+
+const AppSecurityRouteChildren: AppSecurityRouteChildren = {
+  AppSecurityIndexRoute: AppSecurityIndexRoute,
+}
+
+const AppSecurityRouteWithChildren = AppSecurityRoute._addFileChildren(
+  AppSecurityRouteChildren,
+)
+
 interface AppRouteChildren {
-  AppNotificationsRoute: typeof AppNotificationsRoute
-  AppSecurityRoute: typeof AppSecurityRoute
+  AppNotificationsRoute: typeof AppNotificationsRouteWithChildren
+  AppSecurityRoute: typeof AppSecurityRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppScrapebooksIndexRoute: typeof AppScrapebooksIndexRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppNotificationsRoute: AppNotificationsRoute,
-  AppSecurityRoute: AppSecurityRoute,
+  AppNotificationsRoute: AppNotificationsRouteWithChildren,
+  AppSecurityRoute: AppSecurityRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppScrapebooksIndexRoute: AppScrapebooksIndexRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { Bell, Book, Home, LogOut, Settings, Shield } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,7 +34,7 @@ const navigationItems = [
     icon: Home,
   },
   {
-    title: "Scrapebooks",
+    title: "Scrapbooks",
     url: "/app/scrapebooks",
     icon: Book,
   },
@@ -60,7 +60,19 @@ const settingsItems = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
+  const router = useRouter();
   const { session } = useSession();
+
+  const handleLogout = async () => {
+    try {
+      await authClient.revokeSession({
+        token: session?.session.token ?? "",
+      });
+    } catch {
+      // ignore logout errors, still redirect
+    }
+    router.navigate({ to: "/auth" });
+  };
 
   return (
     <Sidebar {...props}>
@@ -146,19 +158,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 side="top"
                 className="w-[--radix-popper-anchor-width]"
               >
-                <Link
-                  to="/"
-                  onClick={async () =>
-                    await authClient.revokeSession({
-                      token: session?.session.token as string,
-                    })
-                  }
-                >
-                  <DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <button type="button" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
-                  </DropdownMenuItem>
-                </Link>
+                  </button>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

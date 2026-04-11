@@ -25,20 +25,19 @@ fastify.register(fastifyCors, {
   maxAge: 86400,
 });
 
-fastify
-  .listen({ port: Number(process.env.PORT), host: "localhost" })
-  .then(async () => {
-    prisma
-      .$connect()
-      .then(() => {
-        logger.info("database connection successful");
-        prisma.$disconnect();
-      })
-      .catch((err) => logger.error(`failed to connect to database: ${err}`));
-    logger.info(
-      `server is listening on http://localhost:${process.env.PORT}...`,
-    );
-  })
-  .catch((err: Error) => {
-    logger.error(`failed to start fastify server: ${err}`);
-  });
+const port = Number(process.env.PORT ?? 4000);
+const host = process.env.HOST ?? "0.0.0.0";
+
+async function startServer() {
+  try {
+    await prisma.$connect();
+    logger.info("database connection successful");
+
+    await fastify.listen({ port, host });
+    logger.info(`server is listening on http://${host}:${port}...`);
+  } catch (err) {
+    logger.error(`failed to start server: ${err}`);
+  }
+}
+
+startServer();
