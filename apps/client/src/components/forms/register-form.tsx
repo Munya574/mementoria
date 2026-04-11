@@ -6,12 +6,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export function RegisterForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -66,9 +67,11 @@ export function RegisterForm() {
         {
           onSuccess: () => {
             toast("Registration Successful");
+            router.navigate({ to: "/app" });
           },
           onError: (error) => {
-            toast(`${error.error.message}`);
+            const message = error?.error?.message || "Registration failed";
+            toast(message);
           },
         },
       );

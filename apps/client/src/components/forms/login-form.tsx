@@ -47,7 +47,8 @@ export function LoginForm() {
             router.navigate({ to: "/app" });
           },
           onError: (error) => {
-            toast(`${error.error.message}`);
+            const message = error?.error?.message || "Login failed";
+            toast(message);
           },
         },
       );
