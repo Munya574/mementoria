@@ -1,7 +1,11 @@
 {
   "include": [
-    "**/*.ts",
-    "**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
   ],
   "compilerOptions": {
     "target": "ES2022",
@@ -22,7 +26,6 @@
     "skipLibCheck": true,
     "strict": true,
     "noUnusedLocals": true,
-    "noImplicitAny": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
