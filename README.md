@@ -1,18 +1,29 @@
 # Mementoria
 
-A full-stack digital scrapebook application for preserving and reliving personal memories. Users can create interactive scrapebooks with customizable pages, arrange media elements freely using drag-and-drop, and animate pages with realistic 3D flip effects.
+**A full-stack digital scrapbook application for preserving and reliving personal memories.**
+
+Mementoria lets users build richly interactive scrapbooks: drag-and-drop media onto freeform canvases, flip through pages with realistic 3D animations, and keep collections of memories organized in one place.
+
+---
+
+## Demo
+
+> Live demo and screenshots coming soon.
 
 ---
 
 ## Features
 
-- **Scrapebook editor** — Create and organize collections of scrapebooks, each with multiple pages
-- **Drag-and-drop canvas** — Freely position text, image, and audio elements on each page
-- **Page flip animations** — Realistic 3D page-turn effects powered by Framer Motion and react-pageflip
-- **Media uploads** — Supports images (JPEG, PNG, GIF, WebP, SVG) and audio (MP3, WAV, OGG, AAC)
-- **Authentication** — Secure session-based login and registration via Better Auth
-- **Theme toggle** — Light and dark mode support
-- **Health monitoring** — Backend health check endpoint for deployment readiness checks
+| Feature | Details |
+|---|---|
+| Scrapbook editor | Create named scrapbooks, each containing multiple pages |
+| Freeform canvas | Drag, drop, and reposition text, image, and audio elements anywhere on a page |
+| 3D page-flip animations | Realistic book-turn effects using Framer Motion |
+| Media uploads | Images (JPEG, PNG, GIF, WebP, SVG) and audio (MP3, WAV, OGG, AAC) |
+| Authentication | Secure session-based login and registration via Better Auth |
+| Route protection | Unauthenticated users are redirected before any protected content loads |
+| Light / dark mode | Persistent theme toggle available across the app |
+| Health endpoint | `/api/health` for deployment readiness checks and uptime monitoring |
 
 ---
 
@@ -22,38 +33,39 @@ A full-stack digital scrapebook application for preserving and reliving personal
 
 | Tool | Purpose |
 |---|---|
-| TypeScript | Primary language across the stack |
+| TypeScript | Primary language across the full stack |
 | Node.js | Runtime |
-| pnpm | Package manager |
-| Turborepo | Monorepo build orchestration |
-| Biome | Linting and formatting |
-| Husky | Pre-commit hooks |
-| Vitest | Testing framework |
+| pnpm | Workspace-aware package manager |
+| Turborepo | Parallelized build orchestration with remote caching |
+| Biome | Unified linting and formatting (replaces ESLint + Prettier) |
+| Husky | Pre-commit quality enforcement |
+| Vitest | Unit and integration testing |
+| GitHub Actions | CI pipeline on every push and pull request |
 
 ### Frontend (`apps/client`)
 
 | Tool | Purpose |
 |---|---|
-| React 19 | UI component library |
-| Vite | Build tool and dev server |
-| TanStack Router | Type-safe, file-based routing |
+| React 19 | UI component framework |
+| Vite 6 | Build tool and dev server with HMR |
+| TanStack Router | Type-safe, file-based routing with automatic code splitting |
 | Tailwind CSS v4 | Utility-first styling |
-| shadcn/ui | Accessible component primitives |
-| Framer Motion | Animations |
-| react-draggable | Drag-and-drop canvas interactions |
-| react-pageflip | 3D page flip animations |
-| Better Auth | Authentication client |
-| Sonner | Toast notifications |
+| shadcn/ui | Accessible, headless component primitives (Radix UI) |
+| Framer Motion | Page flip and transition animations |
+| react-draggable | Canvas drag-and-drop interactions |
+| react-pageflip | 3D page-flip component |
+| Better Auth | Client-side session management |
+| Sonner | Toast notification system |
 
 ### Backend (`apps/server`)
 
 | Tool | Purpose |
 |---|---|
-| Fastify | High-performance web framework |
-| Prisma | Type-safe ORM |
-| SQLite / PostgreSQL | Database (env-configurable) |
-| Better Auth | Session management and authentication |
-| Winston | Structured logging |
+| Fastify | High-performance, low-overhead HTTP framework |
+| Prisma | Type-safe ORM with schema-first migrations |
+| SQLite / PostgreSQL | Database — SQLite for development, PostgreSQL for production |
+| Better Auth | Server-side session handling and credential authentication |
+| Winston | Structured, colorized logging |
 
 ---
 
@@ -62,41 +74,52 @@ A full-stack digital scrapebook application for preserving and reliving personal
 ```
 mementoria/
 ├── apps/
-│   ├── client/          # React + Vite frontend
+│   ├── client/          # React 19 + Vite frontend
+│   │   └── src/
+│   │       ├── routes/      # File-based TanStack Router pages
+│   │       ├── components/  # Shared UI and canvas components
+│   │       ├── hooks/       # Session and responsive layout hooks
+│   │       └── lib/         # Auth client, utilities
 │   └── server/          # Fastify + Prisma backend
-├── turbo.json           # Turborepo pipeline config
-└── package.json         # Root workspace config
+│       ├── src/
+│       │   └── main/
+│       │       ├── routes/  # API route handlers
+│       │       └── lib/     # Auth, logger, Prisma, Fastify setup
+│       └── prisma/
+│           └── schema.prisma
+├── turbo.json           # Turborepo pipeline configuration
+└── pnpm-workspace.yaml  # Workspace definition
 ```
 
 ### Frontend Routes
 
 | Route | Description |
 |---|---|
-| `/` | Landing page |
-| `/auth` | Login and registration |
+| `/` | Landing page with theme toggle and navigation |
+| `/auth` | Tabbed login and registration |
 | `/app` | Protected dashboard — scrapebook collection view |
-| `/app/scrapebooks/:id` | Scrapebook editor with page management |
-| `/app/settings` | User settings |
+| `/app/scrapebooks/:id` | Canvas editor with page management |
+| `/app/settings` | User profile and account management |
 | `/app/security` | Security settings |
 | `/app/notifications` | Notifications |
 
 ### Backend API
 
-| Endpoint | Description |
-|---|---|
-| `GET /api/health` | Health check — returns server and database status |
-| `GET\|POST /api/auth/*` | Authentication routes (delegated to Better Auth) |
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Returns server status, database connectivity, and timestamp |
+| `GET \| POST` | `/api/auth/*` | Authentication routes delegated to Better Auth |
 
 ### Database Schema
 
 ```
-User         — id, name, email, createdAt, updatedAt
+User         — id, name, email, emailVerified, image
 Session      — id, token, expiresAt, userId, ipAddress, userAgent
-Account      — id, providerId, userId, OAuth + credential fields
+Account      — id, providerId, accountId, userId, OAuth + credential fields
 Verification — id, identifier, value, expiresAt
 ```
 
-Storage providers (images, audio) are integrated using dependency injection, enabling straightforward migration to any S3-compatible provider.
+Storage providers are integrated via dependency injection, enabling straightforward migration to any S3-compatible service without changing application logic.
 
 ---
 
@@ -104,35 +127,54 @@ Storage providers (images, audio) are integrated using dependency injection, ena
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm 10+
+- Node.js 20 or later
+- pnpm 10 or later
 
-### Install dependencies
+### Installation
 
 ```bash
+git clone https://github.com/ChilawoM/mementoria.git
+cd mementoria
 pnpm install
 ```
 
-### Configure environment
+### Environment Configuration
 
-Create `.env` files in `apps/client` and `apps/server` as needed. Key variables for the server:
+Create `.env` files in `apps/client` and `apps/server`.
 
+**`apps/server/.env`**
 ```env
-PORT=8080
+PORT=4000
 HOST=localhost
 DATABASE_URL=file:./dev.db
 CLIENT_ORIGIN=http://localhost:3000
+BETTER_AUTH_SECRET=your-secret-here
+BETTER_AUTH_URL=http://localhost:4000
 ```
 
-### Run in development
+**`apps/client/.env`**
+```env
+VITE_SERVER_URL=http://localhost:4000
+```
+
+### Database Setup
 
 ```bash
+cd apps/server
+pnpm prisma migrate dev
+```
+
+### Development
+
+```bash
+# From the repo root — starts both frontend and backend concurrently
 pnpm dev
 ```
 
-This starts both the frontend (default: `http://localhost:3000`) and backend concurrently via Turborepo.
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:4000`
 
-### Build for production
+### Production Build
 
 ```bash
 pnpm build
@@ -140,13 +182,23 @@ pnpm build
 
 ---
 
+## Notable Technical Decisions
+
+- **Turborepo** — Tasks across both apps run in parallel with output caching, keeping CI fast and local builds incremental.
+- **TanStack Router** — File-based routing generates a fully type-safe route tree at build time; `beforeLoad` guards enforce authentication without runtime overhead.
+- **Better Auth** — Full-stack auth library with a Prisma adapter handles session creation, credential verification, and token signing without rolling custom middleware.
+- **Biome over ESLint + Prettier** — Single-tool linting and formatting with significantly faster parse times and zero config conflicts between the two apps.
+- **Dependency-injected storage** — The file upload layer is designed against an interface rather than a concrete provider, making the switch from local storage to S3 a one-file change.
+
+---
+
 ## Team
 
-Originally built as a collaborative team project, then extended independently.
+Mementoria was built as a collaborative team project, then extended and maintained independently.
 
 | Name | Role |
 |---|---|
-| Chilawo Munene | Tech Lead — architecture, full-stack development, continued solo development |
-| Jasmine Huang | Backend development |
-| Peilu Tu | Frontend development |
-| Rita Osi | Backend development |
+| **Chilawo Munene** | Tech Lead — architecture, full-stack development, ongoing solo development |
+| **Jasmine Huang** | Backend development |
+| **Peilu Tu** | Frontend development |
+| **Rita Osi** | Backend development |
