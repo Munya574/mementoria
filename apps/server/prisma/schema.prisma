@@ -14,7 +14,7 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String      @id
   name          String
   email         String
   emailVerified Boolean
@@ -23,9 +23,49 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  scrapbooks    Scrapbook[]
 
   @@unique([email])
   @@map("user")
+}
+
+model Scrapbook {
+  id        String   @id
+  title     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages     Page[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("scrapbook")
+}
+
+model Page {
+  id          String     @id
+  title       String
+  order       Int
+  scrapbookId String
+  scrapbook   Scrapbook  @relation(fields: [scrapbookId], references: [id], onDelete: Cascade)
+  items       PageItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("page")
+}
+
+model PageItem {
+  id        String   @id
+  type      String
+  content   String
+  x         Float
+  y         Float
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("page_item")
 }
 
 model Session {

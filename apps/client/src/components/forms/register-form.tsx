@@ -46,8 +46,12 @@ export function RegisterForm() {
         throw new Error("Please enter a valid email address");
       }
 
-      if (formData.password.length < 6) {
-        throw new Error("Password must be at least 6 characters long");
+      const passwordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).{8,}$/;
+      if (!passwordRegex.test(formData.password)) {
+        throw new Error(
+          "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character",
+        );
       }
 
       if (formData.password !== formData.confirmPassword) {

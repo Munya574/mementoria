@@ -1,10 +1,9 @@
-"use client";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import { DraggableItem } from "@/components/draggable-item";
@@ -42,8 +41,6 @@ const variants = {
   exit: { rotateY: 0, scale: 1 },
 };
 
-const STORAGE_KEY = "mementoria:scrapebooks";
-
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
@@ -63,6 +60,10 @@ const ALLOWED_FILE_TYPES = new Set([
   ...ALLOWED_AUDIO_TYPES,
 ]);
 
+const SERVER_URL =
+  (import.meta.env.VITE_SERVER_URL as string | undefined) ||
+  "http://localhost:4000";
+
 const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -71,7 +72,6 @@ const readFileAsDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-// Page flip animation variants
 const pageFlipVariants = {
   enter: (direction: number) => ({
     x: direction > 0 ? 1000 : -1000,
@@ -93,6 +93,18 @@ const pageFlipVariants = {
   }),
 };
 
+async function apiFetch(path: string, options?: RequestInit) {
+  const res = await fetch(`${SERVER_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
+  return res;
+}
+
 export default function ScrapebooksPage() {
   const [books, setBooks] = useState<Scrapbook[]>([]);
   const [newTitle, setNewTitle] = useState("");
@@ -103,40 +115,98 @@ export default function ScrapebooksPage() {
   const [direction, setDirection] = useState(0);
   const [isFlipping, setIsFlipping] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openBookRef = useRef<Scrapbook | null>(null);
+
+  // Load scrapbooks from the backend on mount
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    const load = async () => {
       try {
-        setBooks(JSON.parse(stored));
+        const res = await apiFetch("/api/scrapbooks");
+        if (!res.ok) throw new Error();
+        const data = (await res.json()) as Scrapbook[];
+        setBooks(data);
       } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
-        toast.error(
-          "Your scrapbook data was corrupted and could not be loaded. Starting fresh.",
-        );
+        toast.error("Failed to load scrapbooks.");
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    void load();
   }, []);
 
+  // Debounced save whenever openBook changes
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
-  }, [books]);
+    if (!openBook) return;
 
-  const addBook = () => {
+    // Skip if content hasn't changed from what we last saved
+    openBookRef.current = openBook;
+
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const book = openBookRef.current;
+      if (!book) return;
+      setIsSaving(true);
+      try {
+        const res = await apiFetch(`/api/scrapbooks/${book.id}`, {
+          method: "PUT",
+          body: JSON.stringify(book),
+        });
+        if (!res.ok) {
+          const msg =
+            res.status === 413
+              ? "File too large to save. Try a smaller image or audio file."
+              : res.status === 401
+                ? "Session expired. Please log in again."
+                : "Failed to save changes.";
+          toast.error(msg);
+        }
+      } catch {
+        toast.error("Failed to save changes — check your connection.");
+      } finally {
+        setIsSaving(false);
+      }
+    }, 800);
+
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [openBook]);
+
+  const addBook = async () => {
     if (!newTitle.trim()) return;
     const newBook: Scrapbook = {
       id: uuidv4(),
       title: newTitle.trim(),
-      pages: [
-        {
-          id: uuidv4(),
-          title: "Page 1",
-          items: [],
-        },
-      ],
+      pages: [{ id: uuidv4(), title: "Page 1", items: [] }],
     };
-    setBooks([...books, newBook]);
-    setNewTitle("");
+    try {
+      const res = await apiFetch("/api/scrapbooks", {
+        method: "POST",
+        body: JSON.stringify(newBook),
+      });
+      if (!res.ok) throw new Error();
+      setBooks((prev) => [...prev, newBook]);
+      setNewTitle("");
+    } catch {
+      toast.error("Failed to create scrapbook.");
+    }
+  };
+
+  const deleteBook = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/scrapbooks/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      setBooks((prev) => prev.filter((b) => b.id !== id));
+    } catch {
+      toast.error("Failed to delete scrapbook.");
+    }
   };
 
   const updateBook = (updated: Scrapbook) => {
@@ -204,7 +274,6 @@ export default function ScrapebooksPage() {
   const goToPage = (newPageIndex: number) => {
     if (isFlipping || newPageIndex === currentPageIndex) return;
 
-    // Ensure the page exists before navigating to it
     if (openBook && newPageIndex >= openBook.pages.length) {
       const updated = { ...openBook };
       while (updated.pages.length <= newPageIndex) {
@@ -260,12 +329,25 @@ export default function ScrapebooksPage() {
     goToPage(updated.pages.length - 1);
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading your scrapbooks...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       {openBook ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">{openBook.title}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold">{openBook.title}</h2>
+              {isSaving && (
+                <span className="text-xs text-muted-foreground">Saving...</span>
+              )}
+            </div>
             <Button variant="secondary" onClick={() => setOpenBook(null)}>
               Close Book
             </Button>
@@ -467,41 +549,61 @@ export default function ScrapebooksPage() {
               placeholder="New book title"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void addBook();
+              }}
             />
-            <Button onClick={addBook} disabled={!newTitle.trim()}>
+            <Button onClick={() => void addBook()} disabled={!newTitle.trim()}>
               <BookOpen className="h-4 w-4 mr-2" />
               Add Book
             </Button>
           </div>
 
           <div className="flex flex-wrap gap-4 py-2">
+            {books.length === 0 && (
+              <p className="text-sm text-muted-foreground py-8">
+                No scrapbooks yet. Create one above to get started.
+              </p>
+            )}
             {books.map((book) => (
-              <Card
-                key={book.id}
-                className="w-48 h-68 cursor-pointer hover:rotate-1 hover:scale-105 transition-transform duration-200"
-                onClick={() => {
-                  setOpenBook(book);
-                  setCurrentPageIndex(0);
-                  setPageInput(1);
-                }}
-              >
-                <motion.div
-                  className="relative w-full h-full"
-                  variants={variants}
-                  initial="initial"
-                  animate="open"
-                  exit="exit"
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                  style={{ transformStyle: "preserve-3d" }}
-                />
-
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-semibold">{book.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {book.pages.length} page{book.pages.length !== 1 ? "s" : ""}
-                  </p>
-                </CardContent>
-              </Card>
+              <div key={book.id} className="relative group">
+                <Card
+                  className="w-48 h-68 cursor-pointer hover:rotate-1 hover:scale-105 transition-transform duration-200"
+                  onClick={() => {
+                    setOpenBook(book);
+                    setCurrentPageIndex(0);
+                    setPageInput(1);
+                  }}
+                >
+                  <motion.div
+                    className="relative w-full h-full"
+                    variants={variants}
+                    initial="initial"
+                    animate="open"
+                    exit="exit"
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    style={{ transformStyle: "preserve-3d" }}
+                  />
+                  <CardContent className="p-4">
+                    <h3 className="text-lg font-semibold">{book.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {book.pages.length} page
+                      {book.pages.length !== 1 ? "s" : ""}
+                    </p>
+                  </CardContent>
+                </Card>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void deleteBook(book.id);
+                  }}
+                  className="absolute top-2 right-2 hidden group-hover:flex items-center justify-center w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs font-bold"
+                  aria-label={`Delete ${book.title}`}
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         </div>
