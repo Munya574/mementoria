@@ -1,55 +1,152 @@
 # Mementoria
 
+A full-stack digital scrapebook application for preserving and reliving personal memories. Users can create interactive scrapebooks with customizable pages, arrange media elements freely using drag-and-drop, and animate pages with realistic 3D flip effects.
+
+---
+
+## Features
+
+- **Scrapebook editor** — Create and organize collections of scrapebooks, each with multiple pages
+- **Drag-and-drop canvas** — Freely position text, image, and audio elements on each page
+- **Page flip animations** — Realistic 3D page-turn effects powered by Framer Motion and react-pageflip
+- **Media uploads** — Supports images (JPEG, PNG, GIF, WebP, SVG) and audio (MP3, WAV, OGG, AAC)
+- **Authentication** — Secure session-based login and registration via Better Auth
+- **Theme toggle** — Light and dark mode support
+- **Health monitoring** — Backend health check endpoint for deployment readiness checks
+
+---
+
 ## Tech Stack
 
-### Overall Repository
+### Monorepo
 
-- Language: TypeScript
-- Runtime: Node.js
-- Package manager: Pnpm
-- Build system: Turborepo
-- Toolchain (formatting, linting, etc): Biome
-- Pre-commit Hook: Husky
-- Testing Framework: Vitest
-- (Optional) Additional package management tool: Nix
+| Tool | Purpose |
+|---|---|
+| TypeScript | Primary language across the stack |
+| Node.js | Runtime |
+| pnpm | Package manager |
+| Turborepo | Monorepo build orchestration |
+| Biome | Linting and formatting |
+| Husky | Pre-commit hooks |
+| Vitest | Testing framework |
 
-### Frontend
+### Frontend (`apps/client`)
 
-- Component library: React
-- Build tool: Vite
-- Router: Tanstack Router
-- CSS framework: Tailwind CSS
-- UI library: Shadcn UI
+| Tool | Purpose |
+|---|---|
+| React 19 | UI component library |
+| Vite | Build tool and dev server |
+| TanStack Router | Type-safe, file-based routing |
+| Tailwind CSS v4 | Utility-first styling |
+| shadcn/ui | Accessible component primitives |
+| Framer Motion | Animations |
+| react-draggable | Drag-and-drop canvas interactions |
+| react-pageflip | 3D page flip animations |
+| Better Auth | Authentication client |
+| Sonner | Toast notifications |
 
-### Backend
+### Backend (`apps/server`)
 
-- Web framework: Fastify
-- ORM: Prisma
-- Database: PostgreSQL
-- Auth framework: Better Auth
+| Tool | Purpose |
+|---|---|
+| Fastify | High-performance web framework |
+| Prisma | Type-safe ORM |
+| SQLite / PostgreSQL | Database (env-configurable) |
+| Better Auth | Session management and authentication |
+| Winston | Structured logging |
 
-## Design
+---
 
-### Frontend
+## Architecture
 
-- /: Landing page
-- /auth: Page used for authentication (signup & login)
-- /app: Scrapebook collection view after login
-- /scrapebooks/{id}: Details for each scrapebook
-- /scrapebooks/{scrapebook-id}/pages/{page-id}: View of each individual pages
-- /settings: User settings
+```
+mementoria/
+├── apps/
+│   ├── client/          # React + Vite frontend
+│   └── server/          # Fastify + Prisma backend
+├── turbo.json           # Turborepo pipeline config
+└── package.json         # Root workspace config
+```
 
-### Backend
+### Frontend Routes
 
-- /health: Health check for backend, database, and providers
--
+| Route | Description |
+|---|---|
+| `/` | Landing page |
+| `/auth` | Login and registration |
+| `/app` | Protected dashboard — scrapebook collection view |
+| `/app/scrapebooks/:id` | Scrapebook editor with page management |
+| `/app/settings` | User settings |
+| `/app/security` | Security settings |
+| `/app/notifications` | Notifications |
 
-### Database
+### Backend API
 
-Schema:
+| Endpoint | Description |
+|---|---|
+| `GET /api/health` | Health check — returns server and database status |
+| `GET\|POST /api/auth/*` | Authentication routes (delegated to Better Auth) |
 
--
+### Database Schema
 
-### Storage Providers (S3)
+```
+User         — id, name, email, createdAt, updatedAt
+Session      — id, token, expiresAt, userId, ipAddress, userAgent
+Account      — id, providerId, userId, OAuth + credential fields
+Verification — id, identifier, value, expiresAt
+```
 
-Used for object storage (images, audio, other files, etc), create with dependency injection patterns for ease of migration.
+Storage providers (images, audio) are integrated using dependency injection, enabling straightforward migration to any S3-compatible provider.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 10+
+
+### Install dependencies
+
+```bash
+pnpm install
+```
+
+### Configure environment
+
+Create `.env` files in `apps/client` and `apps/server` as needed. Key variables for the server:
+
+```env
+PORT=8080
+HOST=localhost
+DATABASE_URL=file:./dev.db
+CLIENT_ORIGIN=http://localhost:3000
+```
+
+### Run in development
+
+```bash
+pnpm dev
+```
+
+This starts both the frontend (default: `http://localhost:3000`) and backend concurrently via Turborepo.
+
+### Build for production
+
+```bash
+pnpm build
+```
+
+---
+
+## Team
+
+Originally built as a collaborative team project, then extended independently.
+
+| Name | Role |
+|---|---|
+| Chilawo Munene | Tech Lead — architecture, full-stack development, continued solo development |
+| Jasmine Huang | Backend development |
+| Peilu Tu | Frontend development |
+| Rita Osi | Backend development |
